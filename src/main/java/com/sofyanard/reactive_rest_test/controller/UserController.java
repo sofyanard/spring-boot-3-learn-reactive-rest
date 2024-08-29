@@ -5,6 +5,8 @@ import com.sofyanard.reactive_rest_test.model.User;
 import com.sofyanard.reactive_rest_test.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ public class UserController {
     }
 
     @GetMapping
+    @Cacheable( "users")
     public Flux<User> getAllUsers() {
         long start = System.currentTimeMillis();
         return userRepository.findAll()
@@ -31,11 +34,13 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @Cacheable( "users")
     public Mono<User> getUserById(@PathVariable String id) {
         return userRepository.findById(id);
     }
 
     @PostMapping
+    @CacheEvict(value = "users", allEntries = true)
     public Mono<ResponseEntity<User>> createUser(@RequestBody User user) {
         return userRepository.findByEmail(user.email())
                 .flatMap(existingUser -> Mono.error(new EmailUniquenessException("Email already exists!")))
@@ -57,11 +62,13 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "users", key = "#id")
     public Mono<Void> deleteUser(@PathVariable String id) {
         return userRepository.deleteById(id);
     }
 
     @GetMapping("/stream")
+    @Cacheable( "users")
     public Flux<User> streamUsers() {
         long start = System.currentTimeMillis();
         return userRepository.findAll()
